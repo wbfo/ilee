@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  brand           String
+  category        String   // "Water Pallets", "Beverages", "Dispensers"
+  palletType      String   // "Full Pallet", "Half Pallet", "Quarter Pallet"
+  description     String
+  casesPerPallet  Int
+  bottlesPerCase  Int
+  bottleSize      String   // "16.9oz", "20oz", "1L", "5 Gallon"
+  totalBottles    Int
+  weight          String   // "2,000 lbs"
+  dimensions      String   // "48x40x60 inches"
+  price           Float    @default(0.00) // ADDED: Price field
+  imageUrl        String?
+  inStock         Boolean  @default(true)
+  featured        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  orderItems      OrderItem[]
+}
+
+model Order {
+  id                String   @id @default(cuid())
+  orderNumber       String   @unique
+  status            String   @default("pending") // pending, confirmed, dispatched, delivered
+  
+  // Customer Info
+  customerName      String
+  customerEmail     String
+  customerPhone     String
+  
+  // Delivery Address
+  address1          String
+  address2          String?
+  city              String
+  state             String
+  zip               String
+  
+  // Delivery Options
+  deliverySpeed     String   // "Standard" | "Express"
+  expressFee        Float?   @default(0)
+  
+  // Equipment
+  hasForklift       Boolean  @default(false)
+  hasPalletJack     Boolean  @default(false)
+  hasLoadingDock    Boolean  @default(false)
+  
+  // Recurring Order
+  isRecurring       Boolean  @default(false)
+  recurringFrequency String? // "weekly" | "bi-weekly" | "monthly"
+  recurringDay      String?  // "Monday", "Tuesday", etc.
+  recurringTime     String?  // "Morning", "Afternoon", "Evening"
+  
+  // Order Details
+  subtotal          Float    @default(0)
+  total             Float    @default(0)
+  notes             String?
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  confirmedAt       DateTime?
+  dispatchedAt      DateTime?
+  deliveredAt       DateTime?
+  
+  // Relations
+  items             OrderItem[]
+  reviews           Review[]
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  quantity    Int
+  
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  orderId     String?
+  
+  // Review Content
+  customerName String
+  rating       Int      // 1-5
+  title        String?
+  text         String
+  deliveryType String?  // "Standard" | "Express"
+  
+  // Moderation
+  status       String   @default("pending") // pending, approved, rejected
+  
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  order        Order?   @relation(fields: [orderId], references: [id])
+  
+  @@index([status])
+  @@index([orderId])
+}
